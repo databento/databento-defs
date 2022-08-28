@@ -1,0 +1,21 @@
+[package]
+name = "db-def"
+authors = ["Databento <support@databento.com>"]
+version = "0.1.0"
+edition = "2021"
+description = "Databento common definitions"
+license = "Apache-2.0"
+repository = "https://github.com/databento/db-def"
+keywords = ["finance", "market-data", "trading"]
+# see https://crates.io/category_slugs
+categories = ["api-bindings"]
+
+[features]
+default = []
+serde = ["dep:serde"]
+
+[dependencies]
+# Deriving translation between integers and enums
+num_enum = "0.5.7"
+# Generic serialization/deserialization framework
+serde = { version = "1.0", features = ["derive"], optional = true }
