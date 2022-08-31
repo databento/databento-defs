@@ -1,6 +1,6 @@
-# db-def
+# databento-defs
 
-A crate containing common Databento enums and data structs.
+A crate containing definitions for common Databento enums and data structs.
 
 # License
 

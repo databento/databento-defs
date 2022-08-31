@@ -1,11 +1,11 @@
 [package]
-name = "db-def"
+name = "databento-defs"
 authors = ["Databento <support@databento.com>"]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Databento common definitions"
 license = "Apache-2.0"
-repository = "https://github.com/databento/db-def"
+repository = "https://github.com/databento/databento-defs"
 keywords = ["finance", "market-data", "trading"]
 # see https://crates.io/category_slugs
 categories = ["api-bindings"]
