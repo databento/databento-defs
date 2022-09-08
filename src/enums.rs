@@ -10,12 +10,25 @@ pub enum Side {
     Bid,
 }
 
-impl From<Side> for c_char {
+impl From<Side> for char {
     fn from(side: Side) -> Self {
-        (match side {
+        match side {
             Side::Ask => 'A',
             Side::Bid => 'B',
-        } as c_char)
+        }
+    }
+}
+
+impl From<Side> for c_char {
+    fn from(side: Side) -> Self {
+        char::from(side) as c_char
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Side {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_char(char::from(*self))
     }
 }
 
@@ -30,21 +43,39 @@ pub enum Action {
     Update,
 }
 
-impl From<Action> for c_char {
+impl From<Action> for char {
     fn from(action: Action) -> Self {
-        (match action {
+        match action {
             Action::Modify => 'M',
             Action::Trade => 'T',
             Action::Cancel => 'C',
             Action::Add => 'A',
             Action::Status => 'S',
             Action::Update => 'U',
-        } as c_char)
+        }
+    }
+}
+
+impl From<Action> for c_char {
+    fn from(action: Action) -> Self {
+        char::from(action) as c_char
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Action {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_char(char::from(*self))
     }
 }
 
 /// A symbology type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize),
+    serde(rename_all = "snake_case")
+)]
 #[repr(u8)]
 pub enum SType {
     ProductId = 0,
@@ -118,6 +149,13 @@ impl Schema {
     }
 }
 
+#[cfg(feature = "serde")]
+impl serde::Serialize for Schema {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
 impl Display for Schema {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
@@ -126,6 +164,11 @@ impl Display for Schema {
 
 /// A data encoding format.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize),
+    serde(rename_all = "lowercase")
+)]
 #[repr(u8)]
 pub enum Encoding {
     /// Databento Binary Encoding + Zstandard compression.
@@ -154,6 +197,11 @@ impl Display for Encoding {
 
 /// A compression format or none if is uncompressed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize),
+    serde(rename_all = "lowercase")
+)]
 #[repr(u8)]
 pub enum Compression {
     /// Uncompressed.

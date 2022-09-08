@@ -5,7 +5,7 @@ use crate::Error;
 // Named `DB_CH` in C
 #[repr(C)]
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct CommonHeader {
     /// The size of the message in 32-bit words.
     #[cfg_attr(feature = "serde", serde(skip))]
@@ -57,7 +57,7 @@ pub struct TickMsg {
 // Named `DB_BA` in C
 #[repr(C)]
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct BidAskPair {
     pub bid_price: i64,
     pub ask_price: i64,
