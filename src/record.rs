@@ -2,17 +2,16 @@ use std::{ops::RangeInclusive, os::raw::c_char};
 
 use crate::Error;
 
-// Named `DB_CH` in C
+/// Common data for all Databento Records, i.e. types implementing the trait
+/// [`TryFrom<Record>`].
 #[repr(C)]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
-pub struct CommonHeader {
-    /// The size of the message in 32-bit words.
-    #[cfg_attr(feature = "serde", serde(skip))]
-    pub nwords: u8,
-    /// The event type; `0x00..0x0F` specifying booklevel size.
-    #[cfg_attr(feature = "serde", serde(skip))]
-    pub type_: u8,
+pub struct RecordHeader {
+    /// The length of the message in 32-bit words.
+    pub length: u8,
+    /// The record type; with `0x00..0x0F` specifying booklevel size.
+    pub rtype: u8,
     /// The publisher ID assigned by Databento.
     pub publisher_id: u16,
     /// The product ID assigned by the venue.
@@ -22,14 +21,14 @@ pub struct CommonHeader {
 }
 
 pub const TICK_MSG_TYPE_ID: u8 = 0xA0;
-/// Tick for message passing.
+/// Market-by-order (MBO tick message.
 /// `hd.type_ = 0xA0`
 #[repr(C)]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct TickMsg {
     /// The common header.
-    pub hd: CommonHeader,
+    pub hd: RecordHeader,
     /// The order ID assigned at the venue.
     pub order_id: u64,
     /// The order price expressed as a signed integer where every 1 unit
@@ -59,24 +58,31 @@ pub struct TickMsg {
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct BidAskPair {
-    pub bid_price: i64,
-    pub ask_price: i64,
-    pub bid_size: u32,
-    pub ask_size: u32,
-    pub bid_orders: u32,
-    pub ask_orders: u32,
+    /// The bid price.
+    pub bid_px: i64,
+    /// The ask price.
+    pub ask_px: i64,
+    /// The bid size.
+    pub bid_sz: u32,
+    /// The ask size.
+    pub ask_sz: u32,
+    /// The bid order count.
+    pub bid_ct: u32,
+    /// The ask order count.
+    pub ask_ct: u32,
 }
 
 pub const MAX_UA_BOOK_LEVEL: usize = 0xF;
 pub const MBP_MSG_TYPE_ID_RANGE: RangeInclusive<u8> = 0x00..=(MAX_UA_BOOK_LEVEL as u8);
 
-/// Market by price implementation with a book depth of 0.
+/// Market by price implementation with a book depth of 0. Equivalent to
+/// MBP-0.
 #[repr(C)]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct TradeMsg {
     /// The common header.
-    pub hd: CommonHeader,
+    pub hd: RecordHeader,
     /// The order price expressed as a signed integer where every 1 unit
     /// corresponds to 1e-9, i.e. 1/1,000,000,000 or 0.000000001.
     pub price: i64,
@@ -107,7 +113,7 @@ pub struct TradeMsg {
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Mbp1Msg {
     /// The common header.
-    pub hd: CommonHeader,
+    pub hd: RecordHeader,
     /// The order price expressed as a signed integer where every 1 unit
     /// corresponds to 1e-9, i.e. 1/1,000,000,000 or 0.000000001.
     pub price: i64,
@@ -137,7 +143,7 @@ pub struct Mbp1Msg {
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Mbp10Msg {
     /// The common header.
-    pub hd: CommonHeader,
+    pub hd: RecordHeader,
     /// The order price expressed as a signed integer where every 1 unit
     /// corresponds to 1e-9, i.e. 1/1,000,000,000 or 0.000000001.
     pub price: i64,
@@ -163,29 +169,13 @@ pub struct Mbp10Msg {
 
 pub type TbboMsg = Mbp1Msg;
 
-pub const OHLC_TYPE_ID: u8 = 0x10;
-#[repr(C)]
-#[derive(Clone, Debug)]
-pub struct OhlcMsg {
-    /// The common header.
-    pub hd: CommonHeader,
-    /// The open price for the bar.
-    pub open: i64,
-    /// The high price for the bar.
-    pub high: i64,
-    /// The low price for the bar.
-    pub low: i64,
-    /// The close price for the bar.
-    pub close: i64,
-}
-
 pub const OHLCV_TYPE_ID: u8 = 0x11;
 #[repr(C)]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct OhlcvMsg {
     /// The common header.
-    pub hd: CommonHeader,
+    pub hd: RecordHeader,
     /// The open price for the bar.
     pub open: i64,
     /// The high price for the bar.
@@ -206,7 +196,7 @@ pub const STATUS_MSG_TYPE_ID: u8 = 0x12;
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct StatusMsg {
     /// The common header.
-    pub hd: CommonHeader,
+    pub hd: RecordHeader,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
     pub ts_recv: u64,
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_c_char_arr"))]
@@ -223,7 +213,7 @@ pub const SYM_DEF_MSG_TYPE_ID: u8 = 0x13;
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct SymDefMsg {
     /// The common header.
-    pub hd: CommonHeader,
+    pub hd: RecordHeader,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
     pub ts_recv: u64,
     pub min_price_increment: i64,
@@ -308,7 +298,7 @@ pub const IMBALANCE_TYPE_ID: u8 = 0x14;
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Imbalance {
-    pub hd: CommonHeader,
+    pub hd: RecordHeader,
     pub ts_recv: u64,
     pub ref_price: i64,
     pub auction_time: u64,
@@ -316,7 +306,7 @@ pub struct Imbalance {
     pub cont_book_clr_price: i64,
     /// Auction interest clearing price.
     pub auct_interest_clr_price: i64,
-    // Short-selling restriction filling price
+    // Short-selling restriction filling price.
     pub ssr_filling_price: i64,
     /// Indicative match price.
     pub ind_match_price: i64,
@@ -347,17 +337,17 @@ fn serialize_c_char_arr<S: serde::Serializer, const N: usize>(
     serializer.serialize_str(str)
 }
 
-/// Might not necessary be a tick: it can be any one of the types for which the
-/// trait [TryFrom<Tick>] is implemented. Using [TryFrom<Tick>] is the primary
+/// A polymorphic record of a particular schema provided by Databento for which the
+/// trait [`TryFrom<Record>`] is implemented. Using [`TryFrom<Record>`] is the primary
 /// way of interacting with this struct.
 #[derive(Debug)]
-pub struct Tick {
-    /// Opaque non-owned pointer to some tick-like struct with a [CommonHeader].
-    pub ptr: *const CommonHeader,
+pub struct Record {
+    /// Opaque non-owned pointer to some record struct with a [`RecordHeader`].
+    pub ptr: *const RecordHeader,
 }
 
-impl Tick {
-    pub fn new(ptr: *const CommonHeader) -> crate::Result<Self> {
+impl Record {
+    pub fn new(ptr: *const RecordHeader) -> crate::Result<Self> {
         if ptr.is_null() {
             Err(crate::Error::NullPointer)
         } else {
@@ -366,7 +356,7 @@ impl Tick {
     }
 }
 
-/// A trait for objects with polymorphism based around [CommonHeader.type_].
+/// A trait for objects with polymorphism based around [`RecordHeader.rtype`].
 pub trait ConstTypeId {
     const TYPE_ID: u8;
 }
@@ -375,21 +365,21 @@ impl ConstTypeId for TickMsg {
     const TYPE_ID: u8 = TICK_MSG_TYPE_ID;
 }
 
-/// Macro for implementing [TryFrom<Tick>] for the given type. The Rust orphan rules for trait implementations
-/// prevent blanket implementing [TryFrom<Tick>] for all types implementing [ConstTypeId]
-/// (https://doc.rust-lang.org/stable/error-index.html#E0210).
+/// Macro for implementing [`TryFrom<Record>`] for the given type. The Rust orphan rules for trait
+/// implementations prevent blanket implementing [`TryFrom<Record>`] for all types implementing
+/// [ConstTypeId](https://doc.rust-lang.org/stable/error-index.html#E0210).
 /// Using a macro also improves the specificity of the error message for [Error::TypeConversion].
 #[macro_export]
-macro_rules! try_from_tick {
+macro_rules! try_from_record {
     ($tick_type:ident) => {
-        impl TryFrom<Tick> for $tick_type {
+        impl TryFrom<Record> for $tick_type {
             type Error = Error;
 
-            fn try_from(tick: Tick) -> $crate::Result<Self> {
+            fn try_from(record: Record) -> $crate::Result<Self> {
                 // Safety: null pointer checked in `new`
                 unsafe {
-                    if tick.ptr.read().type_ == Self::TYPE_ID {
-                        Ok(tick.ptr.cast::<Self>().read())
+                    if record.ptr.read().rtype == Self::TYPE_ID {
+                        Ok(record.ptr.cast::<Self>().read())
                     } else {
                         Err(Error::TypeConversion(concat!(
                             "Not a ",
@@ -402,53 +392,48 @@ macro_rules! try_from_tick {
     };
 }
 
-try_from_tick!(TickMsg);
+try_from_record!(TickMsg);
 
-/// [MbpMsg]'s type ID is the size of the `booklevel` array.
+/// [TradeMsg]'s type ID is the size of its `booklevel` array (0) and is
+/// equivalent to MBP-0.
 impl ConstTypeId for TradeMsg {
     const TYPE_ID: u8 = 0;
 }
 
-/// [MbpMsg]'s type ID is the size of the `booklevel` array.
+/// [Mbp1Msg]'s type ID is the size of its `booklevel` array.
 impl ConstTypeId for Mbp1Msg {
     const TYPE_ID: u8 = 1;
 }
 
-/// [MbpMsg]'s type ID is the size of the `booklevel` array.
+/// [Mbp10Msg]'s type ID is the size of its `booklevel` array.
 impl ConstTypeId for Mbp10Msg {
     const TYPE_ID: u8 = 10;
 }
 
-try_from_tick!(TradeMsg);
-try_from_tick!(Mbp1Msg);
-try_from_tick!(Mbp10Msg);
-
-impl ConstTypeId for OhlcMsg {
-    const TYPE_ID: u8 = OHLC_TYPE_ID;
-}
-
-try_from_tick!(OhlcMsg);
+try_from_record!(TradeMsg);
+try_from_record!(Mbp1Msg);
+try_from_record!(Mbp10Msg);
 
 impl ConstTypeId for OhlcvMsg {
     const TYPE_ID: u8 = OHLCV_TYPE_ID;
 }
 
-try_from_tick!(OhlcvMsg);
+try_from_record!(OhlcvMsg);
 
 impl ConstTypeId for StatusMsg {
     const TYPE_ID: u8 = STATUS_MSG_TYPE_ID;
 }
 
-try_from_tick!(StatusMsg);
+try_from_record!(StatusMsg);
 
 impl ConstTypeId for SymDefMsg {
     const TYPE_ID: u8 = SYM_DEF_MSG_TYPE_ID;
 }
 
-try_from_tick!(SymDefMsg);
+try_from_record!(SymDefMsg);
 
 impl ConstTypeId for Imbalance {
     const TYPE_ID: u8 = IMBALANCE_TYPE_ID;
 }
 
-try_from_tick!(Imbalance);
+try_from_record!(Imbalance);
