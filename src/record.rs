@@ -9,6 +9,7 @@ use crate::Error;
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct RecordHeader {
     /// The length of the message in 32-bit words.
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub length: u8,
     /// The record type; with `0x00..0x0F` specifying booklevel size.
     pub rtype: u8,
