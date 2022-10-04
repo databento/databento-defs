@@ -23,7 +23,7 @@ pub struct RecordHeader {
 }
 
 pub const TICK_MSG_TYPE_ID: u8 = 0xA0;
-/// Market-by-order (MBO tick message.
+/// Market-by-order (MBO) tick message.
 /// `hd.type_ = 0xA0`
 #[repr(C)]
 #[derive(Clone, Debug)]
