@@ -18,6 +18,7 @@ pub struct RecordHeader {
     /// The product ID assigned by the venue.
     pub product_id: u32,
     /// The matching engine received timestamp expressed as number of nanoseconds since UNIX epoch.
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_event: u64,
 }
 
@@ -47,6 +48,7 @@ pub struct TickMsg {
     /// The order side. Can be A\[sk\], B\[id\] or N\[one\].
     pub side: c_char,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_recv: u64,
     /// The delta of `ts_recv - ts_exchange_send`, max 2 seconds.
     pub ts_in_delta: i32,
@@ -99,6 +101,7 @@ pub struct TradeMsg {
     /// The depth of actual book change.
     pub depth: u8,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_recv: u64,
     /// The delta of `ts_recv - ts_exchange_send`, max 2 seconds.
     pub ts_in_delta: i32,
@@ -130,6 +133,7 @@ pub struct Mbp1Msg {
     /// The depth of actual book change.
     pub depth: u8,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_recv: u64,
     /// The delta of `ts_recv - ts_exchange_send`, max 2 seconds.
     pub ts_in_delta: i32,
@@ -160,6 +164,7 @@ pub struct Mbp10Msg {
     /// The depth of actual book change.
     pub depth: u8,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_recv: u64,
     /// The delta of `ts_recv - ts_exchange_send`, max 2 seconds.
     pub ts_in_delta: i32,
@@ -199,6 +204,7 @@ pub struct StatusMsg {
     /// The common header.
     pub hd: RecordHeader,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_recv: u64,
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_c_char_arr"))]
     pub group: [c_char; 21],
@@ -216,10 +222,13 @@ pub struct SymDefMsg {
     /// The common header.
     pub hd: RecordHeader,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_recv: u64,
     pub min_price_increment: i64,
     pub display_factor: i64,
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub expiration: u64,
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub activation: u64,
     pub high_limit_price: i64,
     pub low_limit_price: i64,
@@ -300,8 +309,10 @@ pub const IMBALANCE_TYPE_ID: u8 = 0x14;
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Imbalance {
     pub hd: RecordHeader,
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_recv: u64,
     pub ref_price: i64,
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub auction_time: u64,
     /// Continuous book clearing price.
     pub cont_book_clr_price: i64,
@@ -336,6 +347,12 @@ fn serialize_c_char_arr<S: serde::Serializer, const N: usize>(
     let cstr = unsafe { std::ffi::CStr::from_ptr(&arr[0]) };
     let str = cstr.to_str().unwrap_or("<invalid UTF-8>");
     serializer.serialize_str(str)
+}
+
+/// Serialize as a string to avoid any loss of precision with JSON serializers and parsers
+#[cfg(feature = "serde")]
+fn serialize_large_u64<S: serde::Serializer>(num: &u64, serializer: S) -> Result<S::Ok, S::Error> {
+    serializer.serialize_str(&num.to_string())
 }
 
 /// A polymorphic record of a particular schema provided by Databento for which the
