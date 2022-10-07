@@ -1,17 +1,16 @@
-use std::{ops::RangeInclusive, os::raw::c_char};
+use std::{mem, ops::RangeInclusive, os::raw::c_char, ptr::NonNull};
 
-use crate::Error;
-
-/// Common data for all Databento Records, i.e. types implementing the trait
-/// [`TryFrom<Record>`].
+/// Common data for all Databento records.
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct RecordHeader {
     /// The length of the message in 32-bit words.
     #[cfg_attr(feature = "serde", serde(skip))]
     pub length: u8,
-    /// The record type; with `0x00..0x0F` specifying booklevel size.
+    /// The record type; with `0x00..0x0F` specifying booklevel size. Record
+    /// types implement the trait [`ConstTypeId`], which contains a constant
+    /// ID specific to that record type.
     pub rtype: u8,
     /// The publisher ID assigned by Databento.
     pub publisher_id: u16,
@@ -26,7 +25,7 @@ pub const TICK_MSG_TYPE_ID: u8 = 0xA0;
 /// Market-by-order (MBO) tick message.
 /// `hd.type_ = 0xA0`
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct TickMsg {
     /// The common header.
@@ -58,7 +57,7 @@ pub struct TickMsg {
 
 // Named `DB_BA` in C
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct BidAskPair {
     /// The bid price.
@@ -81,7 +80,7 @@ pub const MBP_MSG_TYPE_ID_RANGE: RangeInclusive<u8> = 0x00..=(MAX_UA_BOOK_LEVEL 
 /// Market by price implementation with a book depth of 0. Equivalent to
 /// MBP-0.
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct TradeMsg {
     /// The common header.
@@ -113,7 +112,7 @@ pub struct TradeMsg {
 
 /// Market by price implementation with a known book depth of 1.
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Mbp1Msg {
     /// The common header.
@@ -144,7 +143,7 @@ pub struct Mbp1Msg {
 
 /// Market by price implementation with a known book depth of 10.
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Mbp10Msg {
     /// The common header.
@@ -177,7 +176,7 @@ pub type TbboMsg = Mbp1Msg;
 
 pub const OHLCV_TYPE_ID: u8 = 0x11;
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct OhlcvMsg {
     /// The common header.
@@ -198,7 +197,7 @@ pub const STATUS_MSG_TYPE_ID: u8 = 0x12;
 /// Trading status update message
 /// `hd.type_ = 0x12`
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct StatusMsg {
     /// The common header.
@@ -216,7 +215,7 @@ pub struct StatusMsg {
 pub const SYM_DEF_MSG_TYPE_ID: u8 = 0x13;
 // Named `SymdefMsg` in C
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct SymDefMsg {
     /// The common header.
@@ -305,7 +304,7 @@ pub struct SymDefMsg {
 /// Order imbalance message.
 pub const IMBALANCE_TYPE_ID: u8 = 0x14;
 #[repr(C)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Imbalance {
     pub hd: RecordHeader,
@@ -355,25 +354,6 @@ fn serialize_large_u64<S: serde::Serializer>(num: &u64, serializer: S) -> Result
     serializer.serialize_str(&num.to_string())
 }
 
-/// A polymorphic record of a particular schema provided by Databento for which the
-/// trait [`TryFrom<Record>`] is implemented. Using [`TryFrom<Record>`] is the primary
-/// way of interacting with this struct.
-#[derive(Debug)]
-pub struct Record {
-    /// Opaque non-owned pointer to some record struct with a [`RecordHeader`].
-    pub ptr: *const RecordHeader,
-}
-
-impl Record {
-    pub fn new(ptr: *const RecordHeader) -> crate::Result<Self> {
-        if ptr.is_null() {
-            Err(crate::Error::NullPointer)
-        } else {
-            Ok(Self { ptr })
-        }
-    }
-}
-
 /// A trait for objects with polymorphism based around [`RecordHeader.rtype`].
 pub trait ConstTypeId {
     const TYPE_ID: u8;
@@ -383,34 +363,66 @@ impl ConstTypeId for TickMsg {
     const TYPE_ID: u8 = TICK_MSG_TYPE_ID;
 }
 
-/// Macro for implementing [`TryFrom<Record>`] for the given type. The Rust orphan rules for trait
-/// implementations prevent blanket implementing [`TryFrom<Record>`] for all types implementing
-/// [ConstTypeId](https://doc.rust-lang.org/stable/error-index.html#E0210).
-/// Using a macro also improves the specificity of the error message for [Error::TypeConversion].
-#[macro_export]
-macro_rules! try_from_record {
-    ($tick_type:ident) => {
-        impl TryFrom<Record> for $tick_type {
-            type Error = Error;
-
-            fn try_from(record: Record) -> $crate::Result<Self> {
-                // Safety: null pointer checked in `new`
-                unsafe {
-                    if record.ptr.read().rtype == Self::TYPE_ID {
-                        Ok(record.ptr.cast::<Self>().read())
-                    } else {
-                        Err(Error::TypeConversion(concat!(
-                            "Not a ",
-                            stringify!($tick_type)
-                        )))
-                    }
-                }
-            }
-        }
-    };
+/// Provides a _relatively safe_ method for converting a reference to
+/// [`RecordHeader`] to a struct beginning with the header. Because it accepts a
+/// reference, the lifetime of the returned reference is tied to the input. This
+/// function checks `rtype` before casting to ensure `bytes` contains a `T`.
+///
+/// # Safety
+/// `raw` must contain at least `std::mem::size_of::<T>()` bytes and a valid
+/// [`RecordHeader`] instance.
+pub unsafe fn transmute_record_bytes<T: ConstTypeId>(bytes: &[u8]) -> Option<&T> {
+    assert!(
+        bytes.len() >= mem::size_of::<T>(),
+        concat!(
+            "Passing a slice smaller than `",
+            stringify!(T),
+            "` to `transmute_raw_record` is invalid"
+        )
+    );
+    let non_null = NonNull::new_unchecked(bytes.as_ptr() as *mut u8);
+    if non_null.cast::<RecordHeader>().as_ref().rtype == T::TYPE_ID {
+        Some(non_null.cast::<T>().as_ref())
+    } else {
+        None
+    }
 }
 
-try_from_record!(TickMsg);
+/// Provides a _relatively safe_ method for converting a reference to a
+/// [`RecordHeader`] to a struct beginning with the header. Because it accepts a reference,
+/// the lifetime of the returned reference is tied to the input.
+///
+/// # Safety
+/// Although this function accepts a reference to a [`RecordHeader`], it's assumed this is
+/// part of a larger `T` struct.
+pub unsafe fn transmute_record<T: ConstTypeId>(header: &RecordHeader) -> Option<&T> {
+    if header.rtype == T::TYPE_ID {
+        // Safety: because it comes from a reference, `header` must not be null. It's ok to cast to `mut`
+        // because it's never mutated.
+        let non_null = NonNull::from(header);
+        Some(non_null.cast::<T>().as_ref())
+    } else {
+        None
+    }
+}
+
+/// Provides a _relatively safe_ method for converting a mut reference to a
+/// [`RecordHeader`] to a struct beginning with the header. Because it accepts a reference,
+/// the lifetime of the returned reference is tied to the input.
+///
+/// # Safety
+/// Although this function accepts a reference to a [`RecordHeader`], it's assumed this is
+/// part of a larger `T` struct.
+pub unsafe fn transmute_record_mut<T: ConstTypeId>(header: &mut RecordHeader) -> Option<&mut T> {
+    if header.rtype == T::TYPE_ID {
+        // Safety: because it comes from a reference, `header` must not be null. It's ok to cast to `mut`
+        // because it's never mutated.
+        let non_null = NonNull::from(header);
+        Some(non_null.cast::<T>().as_mut())
+    } else {
+        None
+    }
+}
 
 /// [TradeMsg]'s type ID is the size of its `booklevel` array (0) and is
 /// equivalent to MBP-0.
@@ -428,30 +440,78 @@ impl ConstTypeId for Mbp10Msg {
     const TYPE_ID: u8 = 10;
 }
 
-try_from_record!(TradeMsg);
-try_from_record!(Mbp1Msg);
-try_from_record!(Mbp10Msg);
-
 impl ConstTypeId for OhlcvMsg {
     const TYPE_ID: u8 = OHLCV_TYPE_ID;
 }
-
-try_from_record!(OhlcvMsg);
 
 impl ConstTypeId for StatusMsg {
     const TYPE_ID: u8 = STATUS_MSG_TYPE_ID;
 }
 
-try_from_record!(StatusMsg);
-
 impl ConstTypeId for SymDefMsg {
     const TYPE_ID: u8 = SYM_DEF_MSG_TYPE_ID;
 }
-
-try_from_record!(SymDefMsg);
 
 impl ConstTypeId for Imbalance {
     const TYPE_ID: u8 = IMBALANCE_TYPE_ID;
 }
 
-try_from_record!(Imbalance);
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const OHLCV_MSG: OhlcvMsg = OhlcvMsg {
+        hd: RecordHeader {
+            length: 56,
+            rtype: 17,
+            publisher_id: 1,
+            product_id: 5482,
+            ts_event: 1609160400000000000,
+        },
+        open: 372025000000000,
+        high: 372050000000000,
+        low: 372025000000000,
+        close: 372050000000000,
+        volume: 57,
+    };
+
+    #[test]
+    fn test_transmute_record_bytes() {
+        unsafe {
+            let ohlcv_bytes = std::slice::from_raw_parts(
+                &OHLCV_MSG as *const OhlcvMsg as *const u8,
+                mem::size_of::<OhlcvMsg>(),
+            )
+            .to_vec();
+            let ohlcv = transmute_record_bytes::<OhlcvMsg>(ohlcv_bytes.as_slice()).unwrap();
+            assert_eq!(*ohlcv, OHLCV_MSG);
+        };
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_transmute_record_bytes_small_buffer() {
+        let source = OHLCV_MSG;
+        unsafe {
+            let slice = std::slice::from_raw_parts(
+                &source as *const OhlcvMsg as *const u8,
+                mem::size_of::<OhlcvMsg>() - 5,
+            );
+            transmute_record_bytes::<OhlcvMsg>(slice);
+        };
+    }
+
+    #[test]
+    fn test_transmute_record() {
+        let source = Box::new(OHLCV_MSG);
+        let ohlcv_ref: &OhlcvMsg = unsafe { transmute_record(&source.hd) }.unwrap();
+        assert_eq!(*ohlcv_ref, OHLCV_MSG);
+    }
+
+    #[test]
+    fn test_transmute_record_mut() {
+        let mut source = Box::new(OHLCV_MSG);
+        let ohlcv_ref: &OhlcvMsg = unsafe { transmute_record(&mut source.hd) }.unwrap();
+        assert_eq!(*ohlcv_ref, OHLCV_MSG);
+    }
+}

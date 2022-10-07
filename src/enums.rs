@@ -4,7 +4,7 @@ use std::os::raw::c_char;
 use num_enum::TryFromPrimitive;
 
 /// A side of the market, either bid or ask.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Side {
     Ask,
     Bid,
@@ -33,7 +33,7 @@ impl serde::Serialize for Side {
 }
 
 /// A tick action.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Action {
     Modify,
     Trade,
@@ -70,7 +70,7 @@ impl serde::Serialize for Action {
 }
 
 /// A symbology type.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, TryFromPrimitive)]
 #[cfg_attr(
     feature = "serde",
     derive(serde::Serialize),
@@ -101,7 +101,7 @@ impl Display for SType {
 }
 
 /// A data record schema.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, TryFromPrimitive)]
 #[repr(u16)]
 pub enum Schema {
     /// Market by order.
@@ -163,7 +163,7 @@ impl Display for Schema {
 }
 
 /// A data encoding format.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, TryFromPrimitive)]
 #[cfg_attr(
     feature = "serde",
     derive(serde::Serialize),
@@ -196,7 +196,7 @@ impl Display for Encoding {
 }
 
 /// A compression format or none if is uncompressed.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, TryFromPrimitive)]
 #[cfg_attr(
     feature = "serde",
     derive(serde::Serialize),
