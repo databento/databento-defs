@@ -115,13 +115,13 @@ pub enum Schema {
     /// All trade events.
     Trades = 4,
     /// Open, high, low, close, and volume at a 1-second cadence.
-    Ohlcv1s = 5,
+    Ohlcv1S = 5,
     /// Open, high, low, close, and volume at a 1-minute cadence.
-    Ohlcv1m = 6,
+    Ohlcv1M = 6,
     /// Open, high, low, close, and volume at an hourly cadence.
-    Ohlcv1h = 7,
+    Ohlcv1H = 7,
     /// Open, high, low, close, and volume at a daily cadence.
-    Ohlcv1d = 8,
+    Ohlcv1D = 8,
     /// Symbol definitions.
     Definition = 9,
     ///
@@ -138,10 +138,10 @@ impl Schema {
             Schema::Mbp10 => "mbp-10",
             Schema::Tbbo => "tbbo",
             Schema::Trades => "trades",
-            Schema::Ohlcv1s => "ohlcv-1s",
-            Schema::Ohlcv1m => "ohlcv-1m",
-            Schema::Ohlcv1h => "ohlcv-1h",
-            Schema::Ohlcv1d => "ohlcv-1d",
+            Schema::Ohlcv1S => "ohlcv-1s",
+            Schema::Ohlcv1M => "ohlcv-1m",
+            Schema::Ohlcv1H => "ohlcv-1h",
+            Schema::Ohlcv1D => "ohlcv-1d",
             Schema::Definition => "definition",
             Schema::Statistics => "statistics",
             Schema::Status => "status",
