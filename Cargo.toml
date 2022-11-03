@@ -12,6 +12,7 @@ categories = ["api-bindings"]
 
 [features]
 default = []
+trivial_copy = []
 serde = ["dep:serde"]
 
 [dependencies]

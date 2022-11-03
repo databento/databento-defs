@@ -3,6 +3,8 @@ use std::os::raw::c_char;
 
 use num_enum::TryFromPrimitive;
 
+use crate::Error;
+
 /// A side of the market, either bid or ask.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Side {
@@ -83,6 +85,21 @@ pub enum SType {
     Smart = 2,
 }
 
+impl std::str::FromStr for SType {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "product_id" => Ok(SType::ProductId),
+            "native" => Ok(SType::Native),
+            "smart" => Ok(SType::Smart),
+            _ => Err(Error::TypeConversion(
+                "Value doesn't match a valid symbol type",
+            )),
+        }
+    }
+}
+
 impl SType {
     /// Convert the symbology type to its `str` representation.
     pub(crate) fn as_str(&self) -> &'static str {
@@ -128,6 +145,28 @@ pub enum Schema {
     Statistics = 10,
     /// Exchange status.
     Status = 11,
+}
+
+impl std::str::FromStr for Schema {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "mbo" => Ok(Schema::Mbo),
+            "mbp-1" => Ok(Schema::Mbp1),
+            "mbp-10" => Ok(Schema::Mbp10),
+            "tbbo" => Ok(Schema::Tbbo),
+            "trades" => Ok(Schema::Trades),
+            "ohlcv-1s" => Ok(Schema::Ohlcv1S),
+            "ohlcv-1m" => Ok(Schema::Ohlcv1M),
+            "ohlcv-1h" => Ok(Schema::Ohlcv1H),
+            "ohlcv-1d" => Ok(Schema::Ohlcv1D),
+            "definition" => Ok(Schema::Definition),
+            "statistics" => Ok(Schema::Statistics),
+            "status" => Ok(Schema::Status),
+            _ => Err(Error::TypeConversion("Value doesn't match a valid schema")),
+        }
+    }
 }
 
 impl Schema {
@@ -179,6 +218,21 @@ pub enum Encoding {
     Json = 2,
 }
 
+impl std::str::FromStr for Encoding {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "dbz" => Ok(Encoding::Dbz),
+            "csv" => Ok(Encoding::Csv),
+            "json" => Ok(Encoding::Json),
+            _ => Err(Error::TypeConversion(
+                "Value doesn't match a valid encoding",
+            )),
+        }
+    }
+}
+
 impl Encoding {
     pub(crate) fn as_str(&self) -> &'static str {
         match self {
@@ -208,4 +262,32 @@ pub enum Compression {
     None = 0,
     /// zstd compression.
     ZStd = 1,
+}
+impl std::str::FromStr for Compression {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "none" => Ok(Compression::None),
+            "zstd" => Ok(Compression::ZStd),
+            _ => Err(Error::TypeConversion(
+                "Value doesn't match a valid compression",
+            )),
+        }
+    }
+}
+
+impl Compression {
+    pub(crate) fn as_str(&self) -> &'static str {
+        match self {
+            Compression::None => "none",
+            Compression::ZStd => "zstd",
+        }
+    }
+}
+
+impl Display for Compression {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
 }

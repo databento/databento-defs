@@ -3,6 +3,7 @@ use std::{mem, ops::RangeInclusive, os::raw::c_char, ptr::NonNull};
 /// Common data for all Databento records.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct RecordHeader {
     /// The length of the message in 32-bit words.
@@ -26,6 +27,7 @@ pub const TICK_MSG_TYPE_ID: u8 = 0xA0;
 /// `hd.type_ = 0xA0`
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct TickMsg {
     /// The common header.
@@ -58,6 +60,7 @@ pub struct TickMsg {
 // Named `DB_BA` in C
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct BidAskPair {
     /// The bid price.
@@ -81,6 +84,7 @@ pub const MBP_MSG_TYPE_ID_RANGE: RangeInclusive<u8> = 0x00..=(MAX_UA_BOOK_LEVEL 
 /// MBP-0.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct TradeMsg {
     /// The common header.
@@ -113,6 +117,7 @@ pub struct TradeMsg {
 /// Market by price implementation with a known book depth of 1.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Mbp1Msg {
     /// The common header.
@@ -144,6 +149,7 @@ pub struct Mbp1Msg {
 /// Market by price implementation with a known book depth of 10.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Mbp10Msg {
     /// The common header.
@@ -177,6 +183,7 @@ pub type TbboMsg = Mbp1Msg;
 pub const OHLCV_TYPE_ID: u8 = 0x11;
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct OhlcvMsg {
     /// The common header.
@@ -198,6 +205,7 @@ pub const STATUS_MSG_TYPE_ID: u8 = 0x12;
 /// `hd.type_ = 0x12`
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct StatusMsg {
     /// The common header.
@@ -216,6 +224,7 @@ pub const SYM_DEF_MSG_TYPE_ID: u8 = 0x13;
 // Named `SymdefMsg` in C
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct SymDefMsg {
     /// The common header.
@@ -305,6 +314,7 @@ pub struct SymDefMsg {
 pub const IMBALANCE_TYPE_ID: u8 = 0x14;
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Imbalance {
     pub hd: RecordHeader,
@@ -336,6 +346,19 @@ pub struct Imbalance {
     pub significant_imbalance: c_char,
     #[cfg_attr(feature = "serde", serde(skip))]
     pub _dummy: [c_char; 4],
+}
+
+pub const ERROR_MSG_TYPE_ID: u8 = 0x15;
+/// Trading status update message
+/// `hd.type_ = 0x15`
+#[repr(C)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+pub struct GatewayErrorMsg {
+    pub hd: RecordHeader,
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_c_char_arr"))]
+    pub err: [c_char; 64],
 }
 
 #[cfg(feature = "serde")]
@@ -454,6 +477,10 @@ impl ConstTypeId for SymDefMsg {
 
 impl ConstTypeId for Imbalance {
     const TYPE_ID: u8 = IMBALANCE_TYPE_ID;
+}
+
+impl ConstTypeId for GatewayErrorMsg {
+    const TYPE_ID: u8 = ERROR_MSG_TYPE_ID;
 }
 
 #[cfg(test)]
