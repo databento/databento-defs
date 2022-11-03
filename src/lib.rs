@@ -5,6 +5,6 @@
 #[forbid(unsafe_code)]
 pub mod enums;
 pub mod error;
-pub mod tick;
+pub mod record;
 
 pub use error::{Error, Result};

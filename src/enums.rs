@@ -4,23 +4,36 @@ use std::os::raw::c_char;
 use num_enum::TryFromPrimitive;
 
 /// A side of the market, either bid or ask.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Side {
     Ask,
     Bid,
 }
 
-impl From<Side> for c_char {
+impl From<Side> for char {
     fn from(side: Side) -> Self {
-        (match side {
+        match side {
             Side::Ask => 'A',
             Side::Bid => 'B',
-        } as c_char)
+        }
+    }
+}
+
+impl From<Side> for c_char {
+    fn from(side: Side) -> Self {
+        char::from(side) as c_char
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Side {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_char(char::from(*self))
     }
 }
 
 /// A tick action.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Action {
     Modify,
     Trade,
@@ -30,21 +43,39 @@ pub enum Action {
     Update,
 }
 
-impl From<Action> for c_char {
+impl From<Action> for char {
     fn from(action: Action) -> Self {
-        (match action {
+        match action {
             Action::Modify => 'M',
             Action::Trade => 'T',
             Action::Cancel => 'C',
             Action::Add => 'A',
             Action::Status => 'S',
             Action::Update => 'U',
-        } as c_char)
+        }
+    }
+}
+
+impl From<Action> for c_char {
+    fn from(action: Action) -> Self {
+        char::from(action) as c_char
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Action {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_char(char::from(*self))
     }
 }
 
 /// A symbology type.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, TryFromPrimitive)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize),
+    serde(rename_all = "snake_case")
+)]
 #[repr(u8)]
 pub enum SType {
     ProductId = 0,
@@ -70,7 +101,7 @@ impl Display for SType {
 }
 
 /// A data record schema.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, TryFromPrimitive)]
 #[repr(u16)]
 pub enum Schema {
     /// Market by order.
@@ -84,13 +115,13 @@ pub enum Schema {
     /// All trade events.
     Trades = 4,
     /// Open, high, low, close, and volume at a 1-second cadence.
-    Ohlcv1s = 5,
+    Ohlcv1S = 5,
     /// Open, high, low, close, and volume at a 1-minute cadence.
-    Ohlcv1m = 6,
+    Ohlcv1M = 6,
     /// Open, high, low, close, and volume at an hourly cadence.
-    Ohlcv1h = 7,
+    Ohlcv1H = 7,
     /// Open, high, low, close, and volume at a daily cadence.
-    Ohlcv1d = 8,
+    Ohlcv1D = 8,
     /// Symbol definitions.
     Definition = 9,
     ///
@@ -107,14 +138,21 @@ impl Schema {
             Schema::Mbp10 => "mbp-10",
             Schema::Tbbo => "tbbo",
             Schema::Trades => "trades",
-            Schema::Ohlcv1s => "ohlcv-1s",
-            Schema::Ohlcv1m => "ohlcv-1m",
-            Schema::Ohlcv1h => "ohlcv-1h",
-            Schema::Ohlcv1d => "ohlcv-1d",
+            Schema::Ohlcv1S => "ohlcv-1s",
+            Schema::Ohlcv1M => "ohlcv-1m",
+            Schema::Ohlcv1H => "ohlcv-1h",
+            Schema::Ohlcv1D => "ohlcv-1d",
             Schema::Definition => "definition",
             Schema::Statistics => "statistics",
             Schema::Status => "status",
         }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl serde::Serialize for Schema {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
     }
 }
 
@@ -125,7 +163,12 @@ impl Display for Schema {
 }
 
 /// A data encoding format.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, TryFromPrimitive)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize),
+    serde(rename_all = "lowercase")
+)]
 #[repr(u8)]
 pub enum Encoding {
     /// Databento Binary Encoding + Zstandard compression.
@@ -153,7 +196,12 @@ impl Display for Encoding {
 }
 
 /// A compression format or none if is uncompressed.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, TryFromPrimitive)]
+#[cfg_attr(
+    feature = "serde",
+    derive(serde::Serialize),
+    serde(rename_all = "lowercase")
+)]
 #[repr(u8)]
 pub enum Compression {
     /// Uncompressed.
