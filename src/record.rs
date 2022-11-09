@@ -386,6 +386,21 @@ impl ConstTypeId for TickMsg {
     const TYPE_ID: u8 = TICK_MSG_TYPE_ID;
 }
 
+/// Provides a _relatively safe_ method for converting a reference to a
+/// struct beginning with the header into a [`RecordHeader`].
+/// Because it accepts a reference, the lifetime of the returned reference
+/// is tied to the input.
+///
+/// # Safety
+/// Although this function accepts a reference to a [`ConstTypeId`], it's assumed this struct's
+/// binary representation begins with a RecordHeader value
+pub unsafe fn transmute_into_header<T: ConstTypeId>(record: &T) -> &RecordHeader {
+    // Safety: because it comes from a reference, `header` must not be null. It's ok to cast to `mut`
+    // because it's never mutated.
+    let non_null = NonNull::from(record);
+    non_null.cast::<RecordHeader>().as_ref()
+}
+
 /// Provides a _relatively safe_ method for converting a reference to
 /// [`RecordHeader`] to a struct beginning with the header. Because it accepts a
 /// reference, the lifetime of the returned reference is tied to the input. This
