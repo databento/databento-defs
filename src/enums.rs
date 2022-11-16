@@ -102,7 +102,7 @@ impl std::str::FromStr for SType {
 
 impl SType {
     /// Convert the symbology type to its `str` representation.
-    pub(crate) fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             SType::Native => "native",
             SType::Smart => "smart",
@@ -170,7 +170,7 @@ impl std::str::FromStr for Schema {
 }
 
 impl Schema {
-    pub(crate) fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             Schema::Mbo => "mbo",
             Schema::Mbp1 => "mbp-1",
@@ -234,7 +234,7 @@ impl std::str::FromStr for Encoding {
 }
 
 impl Encoding {
-    pub(crate) fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             Encoding::Dbz => "dbz",
             Encoding::Csv => "csv",
@@ -278,7 +278,7 @@ impl std::str::FromStr for Compression {
 }
 
 impl Compression {
-    pub(crate) fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             Compression::None => "none",
             Compression::ZStd => "zstd",
