@@ -220,6 +220,15 @@ pub struct StatusMsg {
     pub trading_event: u8,
 }
 
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+pub enum SecurityUpdateAction {
+    Add = b'A',
+    Modify = b'M',
+    Delete = b'D',
+}
+
 pub const SYM_DEF_MSG_TYPE_ID: u8 = 0x13;
 // Named `SymdefMsg` in C
 #[repr(C)]
@@ -297,7 +306,7 @@ pub struct SymDefMsg {
     pub settl_price_type: u8,
     pub sub_fraction: u8,
     pub underlying_product: u8,
-    pub security_update_action: c_char,
+    pub security_update_action: SecurityUpdateAction,
     pub maturity_month_month: u8,
     pub maturity_month_day: u8,
     pub maturity_month_week: u8,
@@ -553,7 +562,7 @@ mod tests {
     #[test]
     fn test_transmute_record_mut() {
         let mut source = Box::new(OHLCV_MSG);
-        let ohlcv_ref: &OhlcvMsg = unsafe { transmute_record(&mut source.hd) }.unwrap();
+        let ohlcv_ref: &OhlcvMsg = unsafe { transmute_record_mut(&mut source.hd) }.unwrap();
         assert_eq!(*ohlcv_ref, OHLCV_MSG);
     }
 }
