@@ -227,6 +227,8 @@ pub enum SecurityUpdateAction {
     Add = b'A',
     Modify = b'M',
     Delete = b'D',
+    // Not used in DFM anymore, but still present in legacy files
+    Invalid = b'~',
 }
 
 pub const SYM_DEF_MSG_TYPE_ID: u8 = 0x13;
@@ -391,10 +393,6 @@ pub trait ConstTypeId {
     const TYPE_ID: u8;
 }
 
-impl ConstTypeId for TickMsg {
-    const TYPE_ID: u8 = TICK_MSG_TYPE_ID;
-}
-
 /// Provides a _relatively safe_ method for converting a reference to a
 /// struct beginning with the header into a [`RecordHeader`].
 /// Because it accepts a reference, the lifetime of the returned reference
@@ -469,6 +467,10 @@ pub unsafe fn transmute_record_mut<T: ConstTypeId>(header: &mut RecordHeader) ->
     } else {
         None
     }
+}
+
+impl ConstTypeId for TickMsg {
+    const TYPE_ID: u8 = TICK_MSG_TYPE_ID;
 }
 
 /// [TradeMsg]'s type ID is the size of its `booklevel` array (0) and is
