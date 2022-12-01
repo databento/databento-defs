@@ -1,3 +1,4 @@
+//! Market data types for encoding different Databento [`Schema`](crate::enums::Schema)s and conversion functions.
 use std::{mem, ops::RangeInclusive, os::raw::c_char, ptr::NonNull};
 
 /// Common data for all Databento records.
@@ -24,7 +25,7 @@ pub struct RecordHeader {
 
 pub const TICK_MSG_TYPE_ID: u8 = 0xA0;
 /// Market-by-order (MBO) tick message.
-/// `hd.type_ = 0xA0`
+/// `hd.rtype = 0xA0`
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "trivial_copy", derive(Copy))]
@@ -58,6 +59,7 @@ pub struct TickMsg {
 }
 
 // Named `DB_BA` in C
+/// A book level.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "trivial_copy", derive(Copy))]
@@ -181,6 +183,7 @@ pub struct Mbp10Msg {
 pub type TbboMsg = Mbp1Msg;
 
 pub const OHLCV_TYPE_ID: u8 = 0x11;
+/// Open, high, low, close, and volume.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "trivial_copy", derive(Copy))]
@@ -202,7 +205,7 @@ pub struct OhlcvMsg {
 
 pub const STATUS_MSG_TYPE_ID: u8 = 0x12;
 /// Trading status update message
-/// `hd.type_ = 0x12`
+/// `hd.rtype = 0x12`
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "trivial_copy", derive(Copy))]
@@ -223,6 +226,7 @@ pub struct StatusMsg {
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[doc(hidden)]
 pub enum SecurityUpdateAction {
     Add = b'A',
     Modify = b'M',
@@ -237,6 +241,7 @@ pub const SYM_DEF_MSG_TYPE_ID: u8 = 0x13;
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[doc(hidden)]
 pub struct SymDefMsg {
     /// The common header.
     pub hd: RecordHeader,
@@ -321,12 +326,13 @@ pub struct SymDefMsg {
     pub _dummy: [c_char; 3],
 }
 
-/// Order imbalance message.
 pub const IMBALANCE_TYPE_ID: u8 = 0x14;
+/// Order imbalance message.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[doc(hidden)]
 pub struct Imbalance {
     pub hd: RecordHeader,
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
@@ -361,7 +367,7 @@ pub struct Imbalance {
 
 pub const ERROR_MSG_TYPE_ID: u8 = 0x15;
 /// Trading status update message
-/// `hd.type_ = 0x15`
+/// `hd.rtype = 0x15`
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "trivial_copy", derive(Copy))]
@@ -388,8 +394,9 @@ fn serialize_large_u64<S: serde::Serializer>(num: &u64, serializer: S) -> Result
     serializer.serialize_str(&num.to_string())
 }
 
-/// A trait for objects with polymorphism based around [`RecordHeader.rtype`].
+/// A trait for objects with polymorphism based around [`RecordHeader::rtype`].
 pub trait ConstTypeId {
+    /// The value of [`RecordHeader::rtype`] for the implementing type.
     const TYPE_ID: u8;
 }
 

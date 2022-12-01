@@ -1,3 +1,4 @@
+//! Enums used in Databento APIs.
 use std::fmt::{self, Display, Formatter};
 use std::os::raw::c_char;
 
@@ -8,7 +9,9 @@ use crate::Error;
 /// A side of the market, either bid or ask.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Side {
+    /// A sell.
     Ask,
+    /// A buy.
     Bid,
 }
 
@@ -37,9 +40,13 @@ impl serde::Serialize for Side {
 /// A tick action.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Action {
+    /// An existing order was modified.
     Modify,
+    /// A trade executed.
     Trade,
+    /// An order was cancelled.
     Cancel,
+    /// A new order was added.
     Add,
     Status,
     Update,
@@ -71,7 +78,8 @@ impl serde::Serialize for Action {
     }
 }
 
-/// A symbology type.
+/// A symbology type. Refer to the [symbology documentation](https://docs.databento.com/reference-historical/basics/symbology)
+/// for more information.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, TryFromPrimitive)]
 #[cfg_attr(
     feature = "serde",
@@ -80,8 +88,11 @@ impl serde::Serialize for Action {
 )]
 #[repr(u8)]
 pub enum SType {
+    /// Symbology using a unique numeric ID.
     ProductId = 0,
+    /// Symbology using the original symbols provided by the publisher.
     Native = 1,
+    /// A set of Databento-specific symbologies for referring to groups of symbols.
     Smart = 2,
 }
 
@@ -170,6 +181,7 @@ impl std::str::FromStr for Schema {
 }
 
 impl Schema {
+    /// Converts the given schema to a `&'static str`.
     pub fn as_str(&self) -> &'static str {
         match self {
             Schema::Mbo => "mbo",
@@ -234,6 +246,7 @@ impl std::str::FromStr for Encoding {
 }
 
 impl Encoding {
+    /// Converts the given encoding to a `&'static str`.
     pub fn as_str(&self) -> &'static str {
         match self {
             Encoding::Dbz => "dbz",
@@ -249,7 +262,7 @@ impl Display for Encoding {
     }
 }
 
-/// A compression format or none if is uncompressed.
+/// A compression format or none if uncompressed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, TryFromPrimitive)]
 #[cfg_attr(
     feature = "serde",
@@ -260,7 +273,7 @@ impl Display for Encoding {
 pub enum Compression {
     /// Uncompressed.
     None = 0,
-    /// zstd compression.
+    /// Zstandard compressed.
     ZStd = 1,
 }
 impl std::str::FromStr for Compression {
@@ -278,6 +291,7 @@ impl std::str::FromStr for Compression {
 }
 
 impl Compression {
+    /// Converts the given compression to a `&'static str`.
     pub fn as_str(&self) -> &'static str {
         match self {
             Compression::None => "none",
