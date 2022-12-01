@@ -1,5 +1,7 @@
+//! Types for errors that can occur in databento-defs and dependent crates.
 use std::{ffi::NulError, fmt::Display, num::TryFromIntError};
 
+/// Simple error type for failed conversions.
 #[derive(Debug, Clone)]
 pub enum Error {
     /// Received an unexpected `NULL` back from an FFI function.

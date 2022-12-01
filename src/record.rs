@@ -1,8 +1,10 @@
+//! Market data types for encoding different Databento [`Schema`](crate::enums::Schema)s and conversion functions.
 use std::{mem, ops::RangeInclusive, os::raw::c_char, ptr::NonNull};
 
 /// Common data for all Databento records.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct RecordHeader {
     /// The length of the message in 32-bit words.
@@ -23,9 +25,10 @@ pub struct RecordHeader {
 
 pub const TICK_MSG_TYPE_ID: u8 = 0xA0;
 /// Market-by-order (MBO) tick message.
-/// `hd.type_ = 0xA0`
+/// `hd.rtype = 0xA0`
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct TickMsg {
     /// The common header.
@@ -56,8 +59,10 @@ pub struct TickMsg {
 }
 
 // Named `DB_BA` in C
+/// A book level.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct BidAskPair {
     /// The bid price.
@@ -81,6 +86,7 @@ pub const MBP_MSG_TYPE_ID_RANGE: RangeInclusive<u8> = 0x00..=(MAX_UA_BOOK_LEVEL 
 /// MBP-0.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct TradeMsg {
     /// The common header.
@@ -113,6 +119,7 @@ pub struct TradeMsg {
 /// Market by price implementation with a known book depth of 1.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Mbp1Msg {
     /// The common header.
@@ -144,6 +151,7 @@ pub struct Mbp1Msg {
 /// Market by price implementation with a known book depth of 10.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Mbp10Msg {
     /// The common header.
@@ -175,8 +183,10 @@ pub struct Mbp10Msg {
 pub type TbboMsg = Mbp1Msg;
 
 pub const OHLCV_TYPE_ID: u8 = 0x11;
+/// Open, high, low, close, and volume.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct OhlcvMsg {
     /// The common header.
@@ -195,9 +205,10 @@ pub struct OhlcvMsg {
 
 pub const STATUS_MSG_TYPE_ID: u8 = 0x12;
 /// Trading status update message
-/// `hd.type_ = 0x12`
+/// `hd.rtype = 0x12`
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct StatusMsg {
     /// The common header.
@@ -212,11 +223,25 @@ pub struct StatusMsg {
     pub trading_event: u8,
 }
 
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[doc(hidden)]
+pub enum SecurityUpdateAction {
+    Add = b'A',
+    Modify = b'M',
+    Delete = b'D',
+    // Not used in DFM anymore, but still present in legacy files
+    Invalid = b'~',
+}
+
 pub const SYM_DEF_MSG_TYPE_ID: u8 = 0x13;
 // Named `SymdefMsg` in C
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[doc(hidden)]
 pub struct SymDefMsg {
     /// The common header.
     pub hd: RecordHeader,
@@ -288,7 +313,7 @@ pub struct SymDefMsg {
     pub settl_price_type: u8,
     pub sub_fraction: u8,
     pub underlying_product: u8,
-    pub security_update_action: c_char,
+    pub security_update_action: SecurityUpdateAction,
     pub maturity_month_month: u8,
     pub maturity_month_day: u8,
     pub maturity_month_week: u8,
@@ -301,11 +326,13 @@ pub struct SymDefMsg {
     pub _dummy: [c_char; 3],
 }
 
-/// Order imbalance message.
 pub const IMBALANCE_TYPE_ID: u8 = 0x14;
+/// Order imbalance message.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[doc(hidden)]
 pub struct Imbalance {
     pub hd: RecordHeader,
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
@@ -338,6 +365,19 @@ pub struct Imbalance {
     pub _dummy: [c_char; 4],
 }
 
+pub const ERROR_MSG_TYPE_ID: u8 = 0x15;
+/// Trading status update message
+/// `hd.rtype = 0x15`
+#[repr(C)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+pub struct GatewayErrorMsg {
+    pub hd: RecordHeader,
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_c_char_arr"))]
+    pub err: [c_char; 64],
+}
+
 #[cfg(feature = "serde")]
 fn serialize_c_char_arr<S: serde::Serializer, const N: usize>(
     arr: &[c_char; N],
@@ -354,13 +394,25 @@ fn serialize_large_u64<S: serde::Serializer>(num: &u64, serializer: S) -> Result
     serializer.serialize_str(&num.to_string())
 }
 
-/// A trait for objects with polymorphism based around [`RecordHeader.rtype`].
+/// A trait for objects with polymorphism based around [`RecordHeader::rtype`].
 pub trait ConstTypeId {
+    /// The value of [`RecordHeader::rtype`] for the implementing type.
     const TYPE_ID: u8;
 }
 
-impl ConstTypeId for TickMsg {
-    const TYPE_ID: u8 = TICK_MSG_TYPE_ID;
+/// Provides a _relatively safe_ method for converting a reference to a
+/// struct beginning with the header into a [`RecordHeader`].
+/// Because it accepts a reference, the lifetime of the returned reference
+/// is tied to the input.
+///
+/// # Safety
+/// Although this function accepts a reference to a [`ConstTypeId`], it's assumed this struct's
+/// binary representation begins with a RecordHeader value
+pub unsafe fn transmute_into_header<T: ConstTypeId>(record: &T) -> &RecordHeader {
+    // Safety: because it comes from a reference, `header` must not be null. It's ok to cast to `mut`
+    // because it's never mutated.
+    let non_null = NonNull::from(record);
+    non_null.cast::<RecordHeader>().as_ref()
 }
 
 /// Provides a _relatively safe_ method for converting a reference to
@@ -424,6 +476,10 @@ pub unsafe fn transmute_record_mut<T: ConstTypeId>(header: &mut RecordHeader) ->
     }
 }
 
+impl ConstTypeId for TickMsg {
+    const TYPE_ID: u8 = TICK_MSG_TYPE_ID;
+}
+
 /// [TradeMsg]'s type ID is the size of its `booklevel` array (0) and is
 /// equivalent to MBP-0.
 impl ConstTypeId for TradeMsg {
@@ -454,6 +510,10 @@ impl ConstTypeId for SymDefMsg {
 
 impl ConstTypeId for Imbalance {
     const TYPE_ID: u8 = IMBALANCE_TYPE_ID;
+}
+
+impl ConstTypeId for GatewayErrorMsg {
+    const TYPE_ID: u8 = ERROR_MSG_TYPE_ID;
 }
 
 #[cfg(test)]
@@ -511,7 +571,7 @@ mod tests {
     #[test]
     fn test_transmute_record_mut() {
         let mut source = Box::new(OHLCV_MSG);
-        let ohlcv_ref: &OhlcvMsg = unsafe { transmute_record(&mut source.hd) }.unwrap();
+        let ohlcv_ref: &OhlcvMsg = unsafe { transmute_record_mut(&mut source.hd) }.unwrap();
         assert_eq!(*ohlcv_ref, OHLCV_MSG);
     }
 }
