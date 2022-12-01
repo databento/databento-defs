@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.1 - TBD
+## 0.3.1 - 2022-12-01
 - Add `trivial_copy` feature to derive `Copy` trait for records
 - Add `from_str` functions for several enums
 - Improve documentation

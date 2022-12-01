@@ -5,14 +5,16 @@ use std::os::raw::c_char;
 use num_enum::TryFromPrimitive;
 
 use crate::Error;
-
-/// A side of the market, either bid or ask.
+/// A side of the market. The side of the market for resting orders, or the side
+/// of the aggressor for trades.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Side {
-    /// A sell.
+    /// A sell order.
     Ask,
-    /// A buy.
+    /// A buy order.
     Bid,
+    /// None or unknown.
+    None,
 }
 
 impl From<Side> for char {
@@ -20,6 +22,7 @@ impl From<Side> for char {
         match side {
             Side::Ask => 'A',
             Side::Bid => 'B',
+            Side::None => 'N',
         }
     }
 }
@@ -48,8 +51,8 @@ pub enum Action {
     Cancel,
     /// A new order was added.
     Add,
-    Status,
-    Update,
+    /// Reset the book; clear all orders for an instrument.
+    Clear,
 }
 
 impl From<Action> for char {
@@ -59,8 +62,7 @@ impl From<Action> for char {
             Action::Trade => 'T',
             Action::Cancel => 'C',
             Action::Add => 'A',
-            Action::Status => 'S',
-            Action::Update => 'U',
+            Action::Clear => 'R',
         }
     }
 }
