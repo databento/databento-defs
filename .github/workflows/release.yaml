@@ -32,15 +32,14 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
 
-      # Run Cargo checks
-      - name: Run cargo checks
-        run: |
-          cargo fmt --all -- --check
-          cargo clippy -- -D warnings
-
-      # Run tests
-      - name: Run tests
-        run: cargo test
+      - name: Format
+        run: scripts/format.sh
+      - name: Build
+        run: scripts/build.sh
+      - name: Lint
+        run: scripts/lint.sh
+      - name: Test
+        run: scripts/test.sh
 
       # Tag the commit with the library version
       - name: Create git tag
