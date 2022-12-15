@@ -366,7 +366,7 @@ pub struct Imbalance {
 }
 
 pub const ERROR_MSG_TYPE_ID: u8 = 0x15;
-/// Trading status update message
+/// Gateway error message
 /// `hd.rtype = 0x15`
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
