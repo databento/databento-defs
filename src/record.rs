@@ -365,7 +365,7 @@ pub struct Imbalance {
     pub _dummy: [c_char; 4],
 }
 
-pub const ERROR_MSG_TYPE_ID: u8 = 0x15;
+pub const GATEWAY_ERROR_MSG_TYPE_ID: u8 = 0x15;
 /// Gateway error message
 /// `hd.rtype = 0x15`
 #[repr(C)]
@@ -376,6 +376,27 @@ pub struct GatewayErrorMsg {
     pub hd: RecordHeader,
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_c_char_arr"))]
     pub err: [c_char; 64],
+}
+
+pub const SYMBOL_MAPPING_MSG_TYPE_ID: u8 = 0x16;
+/// Symbol mapping message
+/// `hd.rtype = 0x16`
+#[repr(C)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+pub struct SymbolMappingMsg {
+    pub hd: RecordHeader,
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_c_char_arr"))]
+    pub stype_in_symbol: [c_char; 22],
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_c_char_arr"))]
+    pub stype_out_symbol: [c_char; 22],
+
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub _dummy: [c_char; 4],
+
+    pub start_ts: u64,
+    pub end_ts: u64,
 }
 
 #[cfg(feature = "serde")]
@@ -513,7 +534,11 @@ impl ConstTypeId for Imbalance {
 }
 
 impl ConstTypeId for GatewayErrorMsg {
-    const TYPE_ID: u8 = ERROR_MSG_TYPE_ID;
+    const TYPE_ID: u8 = GATEWAY_ERROR_MSG_TYPE_ID;
+}
+
+impl ConstTypeId for SymbolMappingMsg {
+    const TYPE_ID: u8 = SYMBOL_MAPPING_MSG_TYPE_ID;
 }
 
 #[cfg(test)]
