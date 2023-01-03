@@ -450,7 +450,7 @@ pub unsafe fn transmute_record_bytes<T: ConstTypeId>(bytes: &[u8]) -> Option<&T>
         concat!(
             "Passing a slice smaller than `",
             stringify!(T),
-            "` to `transmute_raw_record` is invalid"
+            "` to `transmute_record_bytes` is invalid"
         )
     );
     let non_null = NonNull::new_unchecked(bytes.as_ptr() as *mut u8);
@@ -458,6 +458,32 @@ pub unsafe fn transmute_record_bytes<T: ConstTypeId>(bytes: &[u8]) -> Option<&T>
         Some(non_null.cast::<T>().as_ref())
     } else {
         None
+    }
+}
+
+/// Provides a _relatively safe_ method for converting a view on bytes into a
+/// a [`RecordHeader`].
+/// Because it accepts a reference, the lifetime of the returned reference is
+/// tied to the input.
+///
+/// # Safety
+/// `bytes` must contain a complete record (not only the header). This is so that
+/// the header can be subsequently passed to transmute_record
+pub unsafe fn transmute_header_bytes(bytes: &[u8]) -> Option<&RecordHeader> {
+    assert!(
+        bytes.len() >= mem::size_of::<RecordHeader>(),
+        concat!(
+            "Passing a slice smaller than `",
+            stringify!(RecordHeader),
+            "` to `transmute_header_bytes` is invalid"
+        )
+    );
+    let non_null = NonNull::new_unchecked(bytes.as_ptr() as *mut u8);
+    let header = non_null.cast::<RecordHeader>().as_ref();
+    if header.length as usize * 4 > bytes.len() {
+        None
+    } else {
+        Some(header)
     }
 }
 
