@@ -30,7 +30,7 @@ pub const TICK_MSG_TYPE_ID: u8 = 0xA0;
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
-pub struct TickMsg {
+pub struct MboMsg {
     /// The common header.
     pub hd: RecordHeader,
     /// The order ID assigned at the venue.
@@ -524,7 +524,7 @@ pub unsafe fn transmute_record_mut<T: ConstTypeId>(header: &mut RecordHeader) ->
     }
 }
 
-impl ConstTypeId for TickMsg {
+impl ConstTypeId for MboMsg {
     const TYPE_ID: u8 = TICK_MSG_TYPE_ID;
 }
 
