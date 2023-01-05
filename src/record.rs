@@ -235,14 +235,15 @@ pub enum SecurityUpdateAction {
     Invalid = b'~',
 }
 
-pub const SYM_DEF_MSG_TYPE_ID: u8 = 0x13;
-// Named `SymdefMsg` in C
+pub const INSTRUMENT_DEF_MSG_TYPE_ID: u8 = 0x13;
+/// Definition of an instrument.
+/// `hd.rtype = 0x13`
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[doc(hidden)]
-pub struct SymDefMsg {
+pub struct InstrumentDefMsg {
     /// The common header.
     pub hd: RecordHeader,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
@@ -551,8 +552,8 @@ impl ConstTypeId for StatusMsg {
     const TYPE_ID: u8 = STATUS_MSG_TYPE_ID;
 }
 
-impl ConstTypeId for SymDefMsg {
-    const TYPE_ID: u8 = SYM_DEF_MSG_TYPE_ID;
+impl ConstTypeId for InstrumentDefMsg {
+    const TYPE_ID: u8 = INSTRUMENT_DEF_MSG_TYPE_ID;
 }
 
 impl ConstTypeId for Imbalance {
