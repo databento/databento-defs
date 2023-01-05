@@ -41,7 +41,7 @@ pub struct TickMsg {
     /// The order quantity.
     pub size: u32,
     /// A combination of packet end with matching engine status.
-    pub flags: i8,
+    pub flags: u8,
     /// A channel ID within the venue.
     pub channel_id: u8,
     /// The event action. Can be M\[odify\], T\[rade\], C\[ancel\], A\[dd\]
@@ -102,7 +102,7 @@ pub struct TradeMsg {
     /// The order side. Can be A\[sk\], B\[id\] or N\[one\].
     pub side: c_char,
     /// A combination of packet end with matching engine status.
-    pub flags: i8,
+    pub flags: u8,
     /// The depth of actual book change.
     pub depth: u8,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
@@ -135,7 +135,7 @@ pub struct Mbp1Msg {
     /// The order side. Can be A\[sk\], B\[id\] or N\[one\].
     pub side: c_char,
     /// A combination of packet end with matching engine status.
-    pub flags: i8,
+    pub flags: u8,
     /// The depth of actual book change.
     pub depth: u8,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
@@ -167,7 +167,7 @@ pub struct Mbp10Msg {
     /// The order side. Can be A\[sk\], B\[id\] or N\[one\].
     pub side: c_char,
     /// A combination of packet end with matching engine status.
-    pub flags: i8,
+    pub flags: u8,
     /// The depth of actual book change.
     pub depth: u8,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
