@@ -1,6 +1,8 @@
 //! Market data types for encoding different Databento [`Schema`](crate::enums::Schema)s and conversion functions.
 use std::{mem, ops::RangeInclusive, os::raw::c_char, ptr::NonNull};
 
+use crate::enums::SecurityUpdateAction;
+
 /// Common data for all Databento records.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -223,18 +225,6 @@ pub struct StatusMsg {
     pub trading_event: u8,
 }
 
-#[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
-#[doc(hidden)]
-pub enum SecurityUpdateAction {
-    Add = b'A',
-    Modify = b'M',
-    Delete = b'D',
-    // Not used in DFM anymore, but still present in legacy files
-    Invalid = b'~',
-}
-
 pub const INSTRUMENT_DEF_MSG_TYPE_ID: u8 = 0x13;
 /// Definition of an instrument.
 /// `hd.rtype = 0x13`
@@ -314,6 +304,10 @@ pub struct InstrumentDefMsg {
     pub settl_price_type: u8,
     pub sub_fraction: u8,
     pub underlying_product: u8,
+    #[cfg_attr(
+        feature = "serde",
+        serde(serialize_with = "serialize_enum_as_char_repr")
+    )]
     pub security_update_action: SecurityUpdateAction,
     pub maturity_month: u8,
     pub maturity_day: u8,
@@ -392,10 +386,8 @@ pub struct SymbolMappingMsg {
     pub stype_in_symbol: [c_char; 22],
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_c_char_arr"))]
     pub stype_out_symbol: [c_char; 22],
-
     #[cfg_attr(feature = "serde", serde(skip))]
     pub _dummy: [c_char; 4],
-
     pub start_ts: u64,
     pub end_ts: u64,
 }
@@ -410,10 +402,19 @@ fn serialize_c_char_arr<S: serde::Serializer, const N: usize>(
     serializer.serialize_str(str)
 }
 
-/// Serialize as a string to avoid any loss of precision with JSON serializers and parsers
+/// Serialize as a string to avoid any loss of precision with JSON serializers and parsers.
 #[cfg(feature = "serde")]
 fn serialize_large_u64<S: serde::Serializer>(num: &u64, serializer: S) -> Result<S::Ok, S::Error> {
     serializer.serialize_str(&num.to_string())
+}
+
+/// Serialize an enum as its char representation.
+#[cfg(feature = "serde")]
+fn serialize_enum_as_char_repr<S: serde::Serializer, T: Copy + Into<u8>>(
+    val: &T,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    serializer.serialize_char(Into::<u8>::into(*val) as char)
 }
 
 /// A trait for objects with polymorphism based around [`RecordHeader::rtype`].
@@ -625,5 +626,10 @@ mod tests {
         let mut source = Box::new(OHLCV_MSG);
         let ohlcv_ref: &OhlcvMsg = unsafe { transmute_record_mut(&mut source.hd) }.unwrap();
         assert_eq!(*ohlcv_ref, OHLCV_MSG);
+    }
+
+    #[test]
+    fn test_symbol_mapping_size() {
+        assert_eq!(mem::size_of::<SymbolMappingMsg>(), 80);
     }
 }
