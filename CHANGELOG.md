@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 - 2023-01-06
+- Rename `SymDefMsg` to `InstrumentDefMsg`
+- Rename some fields in `InstrumentDefMsg`
+- Add `SymbolMappingMsg`
+- Add `transmute_header_bytes`
+
 ## 0.3.1 - 2022-12-01
 - Add `trivial_copy` feature to derive `Copy` trait for records
 - Add `from_str` functions for several enums

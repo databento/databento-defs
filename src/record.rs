@@ -41,7 +41,7 @@ pub struct TickMsg {
     /// The order quantity.
     pub size: u32,
     /// A combination of packet end with matching engine status.
-    pub flags: i8,
+    pub flags: u8,
     /// A channel ID within the venue.
     pub channel_id: u8,
     /// The event action. Can be M\[odify\], T\[rade\], C\[ancel\], A\[dd\]
@@ -102,7 +102,7 @@ pub struct TradeMsg {
     /// The order side. Can be A\[sk\], B\[id\] or N\[one\].
     pub side: c_char,
     /// A combination of packet end with matching engine status.
-    pub flags: i8,
+    pub flags: u8,
     /// The depth of actual book change.
     pub depth: u8,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
@@ -135,7 +135,7 @@ pub struct Mbp1Msg {
     /// The order side. Can be A\[sk\], B\[id\] or N\[one\].
     pub side: c_char,
     /// A combination of packet end with matching engine status.
-    pub flags: i8,
+    pub flags: u8,
     /// The depth of actual book change.
     pub depth: u8,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
@@ -167,7 +167,7 @@ pub struct Mbp10Msg {
     /// The order side. Can be A\[sk\], B\[id\] or N\[one\].
     pub side: c_char,
     /// A combination of packet end with matching engine status.
-    pub flags: i8,
+    pub flags: u8,
     /// The depth of actual book change.
     pub depth: u8,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
@@ -235,14 +235,15 @@ pub enum SecurityUpdateAction {
     Invalid = b'~',
 }
 
-pub const SYM_DEF_MSG_TYPE_ID: u8 = 0x13;
-// Named `SymdefMsg` in C
+pub const INSTRUMENT_DEF_MSG_TYPE_ID: u8 = 0x13;
+/// Definition of an instrument.
+/// `hd.rtype = 0x13`
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "trivial_copy", derive(Copy))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[doc(hidden)]
-pub struct SymDefMsg {
+pub struct InstrumentDefMsg {
     /// The common header.
     pub hd: RecordHeader,
     /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
@@ -279,9 +280,9 @@ pub struct SymDefMsg {
     pub related_security_id: u32,
     pub trading_reference_date: u16,
     pub appl_id: i16,
-    pub maturity_month_year: u16,
+    pub maturity_year: u16,
     pub decay_start_date: u16,
-    pub chan: u16,
+    pub channel_id: u16,
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_c_char_arr"))]
     pub currency: [c_char; 4],
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_c_char_arr"))]
@@ -314,9 +315,9 @@ pub struct SymDefMsg {
     pub sub_fraction: u8,
     pub underlying_product: u8,
     pub security_update_action: SecurityUpdateAction,
-    pub maturity_month_month: u8,
-    pub maturity_month_day: u8,
-    pub maturity_month_week: u8,
+    pub maturity_month: u8,
+    pub maturity_day: u8,
+    pub maturity_week: u8,
     pub user_defined_instrument: c_char,
     pub contract_multiplier_unit: i8,
     pub flow_schedule_type: i8,
@@ -365,8 +366,8 @@ pub struct Imbalance {
     pub _dummy: [c_char; 4],
 }
 
-pub const ERROR_MSG_TYPE_ID: u8 = 0x15;
-/// Trading status update message
+pub const GATEWAY_ERROR_MSG_TYPE_ID: u8 = 0x15;
+/// Gateway error message
 /// `hd.rtype = 0x15`
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -376,6 +377,27 @@ pub struct GatewayErrorMsg {
     pub hd: RecordHeader,
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_c_char_arr"))]
     pub err: [c_char; 64],
+}
+
+pub const SYMBOL_MAPPING_MSG_TYPE_ID: u8 = 0x16;
+/// Symbol mapping message
+/// `hd.rtype = 0x16`
+#[repr(C)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "trivial_copy", derive(Copy))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+pub struct SymbolMappingMsg {
+    pub hd: RecordHeader,
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_c_char_arr"))]
+    pub stype_in_symbol: [c_char; 22],
+    #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_c_char_arr"))]
+    pub stype_out_symbol: [c_char; 22],
+
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub _dummy: [c_char; 4],
+
+    pub start_ts: u64,
+    pub end_ts: u64,
 }
 
 #[cfg(feature = "serde")]
@@ -429,7 +451,7 @@ pub unsafe fn transmute_record_bytes<T: ConstTypeId>(bytes: &[u8]) -> Option<&T>
         concat!(
             "Passing a slice smaller than `",
             stringify!(T),
-            "` to `transmute_raw_record` is invalid"
+            "` to `transmute_record_bytes` is invalid"
         )
     );
     let non_null = NonNull::new_unchecked(bytes.as_ptr() as *mut u8);
@@ -437,6 +459,32 @@ pub unsafe fn transmute_record_bytes<T: ConstTypeId>(bytes: &[u8]) -> Option<&T>
         Some(non_null.cast::<T>().as_ref())
     } else {
         None
+    }
+}
+
+/// Provides a _relatively safe_ method for converting a view on bytes into a
+/// a [`RecordHeader`].
+/// Because it accepts a reference, the lifetime of the returned reference is
+/// tied to the input.
+///
+/// # Safety
+/// `bytes` must contain a complete record (not only the header). This is so that
+/// the header can be subsequently passed to transmute_record
+pub unsafe fn transmute_header_bytes(bytes: &[u8]) -> Option<&RecordHeader> {
+    assert!(
+        bytes.len() >= mem::size_of::<RecordHeader>(),
+        concat!(
+            "Passing a slice smaller than `",
+            stringify!(RecordHeader),
+            "` to `transmute_header_bytes` is invalid"
+        )
+    );
+    let non_null = NonNull::new_unchecked(bytes.as_ptr() as *mut u8);
+    let header = non_null.cast::<RecordHeader>().as_ref();
+    if header.length as usize * 4 > bytes.len() {
+        None
+    } else {
+        Some(header)
     }
 }
 
@@ -504,8 +552,8 @@ impl ConstTypeId for StatusMsg {
     const TYPE_ID: u8 = STATUS_MSG_TYPE_ID;
 }
 
-impl ConstTypeId for SymDefMsg {
-    const TYPE_ID: u8 = SYM_DEF_MSG_TYPE_ID;
+impl ConstTypeId for InstrumentDefMsg {
+    const TYPE_ID: u8 = INSTRUMENT_DEF_MSG_TYPE_ID;
 }
 
 impl ConstTypeId for Imbalance {
@@ -513,7 +561,11 @@ impl ConstTypeId for Imbalance {
 }
 
 impl ConstTypeId for GatewayErrorMsg {
-    const TYPE_ID: u8 = ERROR_MSG_TYPE_ID;
+    const TYPE_ID: u8 = GATEWAY_ERROR_MSG_TYPE_ID;
+}
+
+impl ConstTypeId for SymbolMappingMsg {
+    const TYPE_ID: u8 = SYMBOL_MAPPING_MSG_TYPE_ID;
 }
 
 #[cfg(test)]

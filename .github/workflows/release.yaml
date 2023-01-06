@@ -1,0 +1,76 @@
+name: release
+
+on:
+  workflow_run:
+    workflows:
+      - build
+    branches: [main]
+    types:
+      - completed
+
+jobs:
+  release-and-publish:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    name: tag-release - ubuntu-latest
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create-release.outputs.upload_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      # Cargo setup
+      - name: Set up Cargo cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+
+      - name: Format
+        run: scripts/format.sh
+      - name: Build
+        run: scripts/build.sh
+      - name: Lint
+        run: scripts/lint.sh
+      - name: Test
+        run: scripts/test.sh
+
+      # Tag the commit with the library version
+      - name: Create git tag
+        uses: salsify/action-detect-and-tag-new-version@v2
+        with:
+          version-command: scripts/get_version.sh
+
+      # Set release output variables
+      - name: Set output
+        id: vars
+        run: |
+          echo "::set-output name=tag_name::v$(scripts/get_version.sh)"
+          echo "::set-output name=release_name::$(scripts/get_version.sh)"
+
+      # Create GitHub release
+      - name: Create release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.vars.outputs.tag_name }}
+          RELEASE_NAME: ${{ steps.vars.outputs.release_name }}
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          release_name: ${{ env.RELEASE_NAME }}
+          draft: false
+          prerelease: false
+
+      # Publish to crates.io
+      - name: Publish to crates.io
+        id: publish
+        uses: katyo/publish-crates@v1
+        with:
+          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
