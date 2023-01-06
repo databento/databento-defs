@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 - 2023-01-09
+- Rename `TickMsg` to `MboMsg`
+- Upgrade dependencies
+- Fix serialization of `SecurityUpdateAction`
+
 ## 0.4.0 - 2023-01-06
 - Rename `SymDefMsg` to `InstrumentDefMsg`
 - Rename some fields in `InstrumentDefMsg`
