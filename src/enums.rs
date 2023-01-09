@@ -2,7 +2,7 @@
 use std::fmt::{self, Display, Formatter};
 use std::os::raw::c_char;
 
-use num_enum::TryFromPrimitive;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 use crate::Error;
 /// A side of the market. The side of the market for resting orders, or the side
@@ -306,4 +306,16 @@ impl Display for Compression {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
     }
+}
+
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, IntoPrimitive)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[doc(hidden)]
+pub enum SecurityUpdateAction {
+    Add = b'A',
+    Modify = b'M',
+    Delete = b'D',
+    // Deprecated, but still present in legacy files
+    Invalid = b'~',
 }
