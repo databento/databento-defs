@@ -20,7 +20,7 @@ pub struct RecordHeader {
     pub publisher_id: u16,
     /// The product ID assigned by the venue.
     pub product_id: u32,
-    /// The matching engine received timestamp expressed as number of nanoseconds since UNIX epoch.
+    /// The matching-engine-received timestamp expressed as number of nanoseconds since UNIX epoch.
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_event: u64,
 }
@@ -51,7 +51,7 @@ pub struct MboMsg {
     pub action: c_char,
     /// The order side. Can be A\[sk\], B\[id\] or N\[one\].
     pub side: c_char,
-    /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
+    /// The capture-server-received timestamp expressed as number of nanoseconds since UNIX epoch.
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_recv: u64,
     /// The delta of `ts_recv - ts_exchange_send`, max 2 seconds.
@@ -107,7 +107,7 @@ pub struct TradeMsg {
     pub flags: u8,
     /// The depth of actual book change.
     pub depth: u8,
-    /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
+    /// The capture-server-received timestamp expressed as number of nanoseconds since UNIX epoch.
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_recv: u64,
     /// The delta of `ts_recv - ts_exchange_send`, max 2 seconds.
@@ -140,7 +140,7 @@ pub struct Mbp1Msg {
     pub flags: u8,
     /// The depth of actual book change.
     pub depth: u8,
-    /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
+    /// The capture-server-received timestamp expressed as number of nanoseconds since UNIX epoch.
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_recv: u64,
     /// The delta of `ts_recv - ts_exchange_send`, max 2 seconds.
@@ -172,7 +172,7 @@ pub struct Mbp10Msg {
     pub flags: u8,
     /// The depth of actual book change.
     pub depth: u8,
-    /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
+    /// The capture-server-received timestamp expressed as number of nanoseconds since UNIX epoch.
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_recv: u64,
     /// The delta of `ts_recv - ts_exchange_send`, max 2 seconds.
@@ -215,7 +215,7 @@ pub const STATUS_MSG_TYPE_ID: u8 = 0x12;
 pub struct StatusMsg {
     /// The common header.
     pub hd: RecordHeader,
-    /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
+    /// The capture-server-received timestamp expressed as number of nanoseconds since UNIX epoch.
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_recv: u64,
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_c_char_arr"))]
@@ -236,7 +236,7 @@ pub const INSTRUMENT_DEF_MSG_TYPE_ID: u8 = 0x13;
 pub struct InstrumentDefMsg {
     /// The common header.
     pub hd: RecordHeader,
-    /// The capture server received timestamp expressed as number of nanoseconds since UNIX epoch.
+    /// The capture-server-received timestamp expressed as number of nanoseconds since UNIX epoch.
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_large_u64"))]
     pub ts_recv: u64,
     pub min_price_increment: i64,
